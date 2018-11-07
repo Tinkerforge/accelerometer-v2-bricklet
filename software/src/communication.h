@@ -34,6 +34,30 @@ void communication_tick(void);
 void communication_init(void);
 
 // Constants
+#define ACCELEROMETER_V2_DATA_RATE_0_781HZ 0
+#define ACCELEROMETER_V2_DATA_RATE_1_563HZ 1
+#define ACCELEROMETER_V2_DATA_RATE_3_125HZ 2
+#define ACCELEROMETER_V2_DATA_RATE_6_2512HZ 3
+#define ACCELEROMETER_V2_DATA_RATE_12_5HZ 4
+#define ACCELEROMETER_V2_DATA_RATE_25HZ 5
+#define ACCELEROMETER_V2_DATA_RATE_50HZ 6
+#define ACCELEROMETER_V2_DATA_RATE_100HZ 7
+#define ACCELEROMETER_V2_DATA_RATE_200HZ 8
+#define ACCELEROMETER_V2_DATA_RATE_400HZ 9
+#define ACCELEROMETER_V2_DATA_RATE_800HZ 10
+#define ACCELEROMETER_V2_DATA_RATE_1600HZ 11
+#define ACCELEROMETER_V2_DATA_RATE_3200HZ 12
+#define ACCELEROMETER_V2_DATA_RATE_6400HZ 13
+#define ACCELEROMETER_V2_DATA_RATE_12800HZ 14
+#define ACCELEROMETER_V2_DATA_RATE_25600HZ 15
+
+#define ACCELEROMETER_V2_FULL_SCALE_2G 0
+#define ACCELEROMETER_V2_FULL_SCALE_4G 1
+#define ACCELEROMETER_V2_FULL_SCALE_8G 2
+
+#define ACCELEROMETER_V2_RESOLUTION_8BIT 0
+#define ACCELEROMETER_V2_RESOLUTION_16BIT 1
+
 #define ACCELEROMETER_V2_BOOTLOADER_MODE_BOOTLOADER 0
 #define ACCELEROMETER_V2_BOOTLOADER_MODE_FIRMWARE 1
 #define ACCELEROMETER_V2_BOOTLOADER_MODE_BOOTLOADER_WAIT_FOR_REBOOT 2
@@ -53,19 +77,81 @@ void communication_init(void);
 #define ACCELEROMETER_V2_STATUS_LED_CONFIG_SHOW_STATUS 3
 
 // Function and callback IDs and structs
+#define FID_GET_ACCELERATION 1
+#define FID_SET_CONFIGURATION 2
+#define FID_GET_CONFIGURATION 3
+#define FID_SET_ACCELERATION_CALLBACK_CONFIGURATION 4
+#define FID_GET_ACCELERATION_CALLBACK_CONFIGURATION 5
 
+#define FID_CALLBACK_ACCELERATION 6
 
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetAcceleration;
+
+typedef struct {
+	TFPMessageHeader header;
+	int16_t x;
+	int16_t y;
+	int16_t z;
+} __attribute__((__packed__)) GetAcceleration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t data_rate;
+	uint8_t full_scale;
+	uint8_t resolution;
+} __attribute__((__packed__)) SetConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t data_rate;
+	uint8_t full_scale;
+	uint8_t resolution;
+} __attribute__((__packed__)) GetConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint32_t period;
+	bool value_has_to_change;
+} __attribute__((__packed__)) SetAccelerationCallbackConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetAccelerationCallbackConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint32_t period;
+	bool value_has_to_change;
+} __attribute__((__packed__)) GetAccelerationCallbackConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	int16_t x;
+	int16_t y;
+	int16_t z;
+} __attribute__((__packed__)) Acceleration_Callback;
 
 
 // Function prototypes
-
+BootloaderHandleMessageResponse get_acceleration(const GetAcceleration *data, GetAcceleration_Response *response);
+BootloaderHandleMessageResponse set_configuration(const SetConfiguration *data);
+BootloaderHandleMessageResponse get_configuration(const GetConfiguration *data, GetConfiguration_Response *response);
+BootloaderHandleMessageResponse set_acceleration_callback_configuration(const SetAccelerationCallbackConfiguration *data);
+BootloaderHandleMessageResponse get_acceleration_callback_configuration(const GetAccelerationCallbackConfiguration *data, GetAccelerationCallbackConfiguration_Response *response);
 
 // Callbacks
-
+bool handle_acceleration_callback(void);
 
 #define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
-#define COMMUNICATION_CALLBACK_HANDLER_NUM 0
+#define COMMUNICATION_CALLBACK_HANDLER_NUM 1
 #define COMMUNICATION_CALLBACK_LIST_INIT \
+	handle_acceleration_callback, \
 
 
 #endif
