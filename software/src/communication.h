@@ -82,8 +82,12 @@ void communication_init(void);
 #define FID_GET_CONFIGURATION 3
 #define FID_SET_ACCELERATION_CALLBACK_CONFIGURATION 4
 #define FID_GET_ACCELERATION_CALLBACK_CONFIGURATION 5
+#define FID_SET_CONTINUOUS_ACCELERATION_CONFIGURATION 7
+#define FID_GET_CONTINUOUS_ACCELERATION_CONFIGURATION 8
 
 #define FID_CALLBACK_ACCELERATION 6
+#define FID_CALLBACK_CONTINUOUS_ACCELERATION_16_BIT 9
+#define FID_CALLBACK_CONTINUOUS_ACCELERATION_8_BIT 10
 
 typedef struct {
 	TFPMessageHeader header;
@@ -91,16 +95,15 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
-	int16_t x;
-	int16_t y;
-	int16_t z;
+	int32_t x;
+	int32_t y;
+	int32_t z;
 } __attribute__((__packed__)) GetAcceleration_Response;
 
 typedef struct {
 	TFPMessageHeader header;
 	uint8_t data_rate;
 	uint8_t full_scale;
-	uint8_t resolution;
 } __attribute__((__packed__)) SetConfiguration;
 
 typedef struct {
@@ -111,7 +114,6 @@ typedef struct {
 	TFPMessageHeader header;
 	uint8_t data_rate;
 	uint8_t full_scale;
-	uint8_t resolution;
 } __attribute__((__packed__)) GetConfiguration_Response;
 
 typedef struct {
@@ -132,10 +134,40 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
-	int16_t x;
-	int16_t y;
-	int16_t z;
+	int32_t x;
+	int32_t y;
+	int32_t z;
 } __attribute__((__packed__)) Acceleration_Callback;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool enable_x;
+	bool enable_y;
+	bool enable_z;
+	uint8_t resolution;
+} __attribute__((__packed__)) SetContinuousAccelerationConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetContinuousAccelerationConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	bool enable_x;
+	bool enable_y;
+	bool enable_z;
+	uint8_t resolution;
+} __attribute__((__packed__)) GetContinuousAccelerationConfiguration_Response;
+
+typedef struct {
+	TFPMessageHeader header;
+	int16_t acceleration[30];
+} __attribute__((__packed__)) ContinuousAcceleration16Bit_Callback;
+
+typedef struct {
+	TFPMessageHeader header;
+	int8_t acceleration[60];
+} __attribute__((__packed__)) ContinuousAcceleration8Bit_Callback;
 
 
 // Function prototypes
@@ -144,14 +176,20 @@ BootloaderHandleMessageResponse set_configuration(const SetConfiguration *data);
 BootloaderHandleMessageResponse get_configuration(const GetConfiguration *data, GetConfiguration_Response *response);
 BootloaderHandleMessageResponse set_acceleration_callback_configuration(const SetAccelerationCallbackConfiguration *data);
 BootloaderHandleMessageResponse get_acceleration_callback_configuration(const GetAccelerationCallbackConfiguration *data, GetAccelerationCallbackConfiguration_Response *response);
+BootloaderHandleMessageResponse set_continuous_acceleration_configuration(const SetContinuousAccelerationConfiguration *data);
+BootloaderHandleMessageResponse get_continuous_acceleration_configuration(const GetContinuousAccelerationConfiguration *data, GetContinuousAccelerationConfiguration_Response *response);
 
 // Callbacks
 bool handle_acceleration_callback(void);
+bool handle_continuous_acceleration_16_bit_callback(void);
+bool handle_continuous_acceleration_8_bit_callback(void);
 
 #define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
-#define COMMUNICATION_CALLBACK_HANDLER_NUM 1
+#define COMMUNICATION_CALLBACK_HANDLER_NUM 3
 #define COMMUNICATION_CALLBACK_LIST_INIT \
 	handle_acceleration_callback, \
+	handle_continuous_acceleration_16_bit_callback, \
+	handle_continuous_acceleration_8_bit_callback, \
 
 
 #endif

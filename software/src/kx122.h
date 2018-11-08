@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define KX122_CONT_ACCELERATION_BUFFER_SIZE (1000*3)
+
 #define KX122_DATA_SPI_BUFFER_SIZE 128
 
 #define KX122_X 0
@@ -37,7 +39,7 @@ typedef struct {
 	uint8_t data_write_index;
 	uint16_t data_length;
 
-	int16_t acceleration[3];
+	int32_t acceleration[3];
 
 	uint32_t acceleration_period;
 	bool acceleration_value_has_to_change;
@@ -46,12 +48,20 @@ typedef struct {
 
 	uint8_t config_current_data_rate;
 	uint8_t config_current_full_scale;
-	uint8_t config_current_resolution;
 
 	uint8_t config_new_data_rate;
 	uint8_t config_new_full_scale;
-	uint8_t config_new_resolution;
 	bool config_new;
+
+	bool config_cont_current_enable[3];
+	uint8_t config_cont_current_resolution;
+
+	bool config_cont_new_enable[3];
+	uint8_t config_cont_new_resolution;
+	bool config_cont_new;
+
+	bool cont_enabled;
+	int16_t cont_acceleration[KX122_CONT_ACCELERATION_BUFFER_SIZE];
 } KX122;
 
 extern KX122 kx122;

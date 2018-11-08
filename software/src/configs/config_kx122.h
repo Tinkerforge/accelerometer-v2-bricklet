@@ -36,7 +36,7 @@
 #define KX122_IRQ_INT2_PRIORITY    0
 
 
-#define KX122_SPI_BAUDRATE         400000
+#define KX122_SPI_BAUDRATE         4000000
 #define KX122_USIC_CHANNEL         USIC0_CH1
 #define KX122_USIC                 XMC_SPI0_CH1
 

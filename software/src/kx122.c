@@ -147,15 +147,22 @@ uint32_t kx122_get_standby_delay_in_ms(const uint8_t data_rate) {
 }
 
 void kx122_update_config_task(void) {
-	if(kx122.config_new) {
+	if(kx122.config_new || kx122.config_cont_new) {
 		kx122.config_new = false;
+		kx122.config_cont_new =  false;
+
+		bool use_stream = kx122.config_cont_new_enable[0] || kx122.config_cont_new_enable[1] || kx122.config_cont_new_enable[2];
+
+		kx122.config_cont_current_enable[0]  = kx122.config_cont_new_enable[0];
+		kx122.config_cont_current_enable[1]  = kx122.config_cont_new_enable[1];
+		kx122.config_cont_current_enable[2]  = kx122.config_cont_new_enable[2];
+		kx122.config_cont_current_resolution = kx122.config_cont_new_resolution;
 
 		uint8_t old_data_rate  = kx122.config_current_data_rate;
 		uint8_t old_full_scale = kx122.config_current_full_scale;
 
 		kx122.config_current_data_rate  = kx122.config_new_data_rate;
 		kx122.config_current_full_scale = kx122.config_new_full_scale;
-		kx122.config_current_resolution = kx122.config_new_resolution;
 
 		// Standby mode
 		uint8_t data = 0b00100000 | (old_full_scale << 3); 
@@ -167,12 +174,35 @@ void kx122_update_config_task(void) {
 		// Set new data rate
 		data = kx122_data_rate_to_osa[kx122.config_current_data_rate];
 		kx122_task_spi_write(KX122_REG_ODCNTL, &data, 1);
+
+		// Clear buffer
+		data = 0;
+		kx122_task_spi_write(KX122_REG_BUF_CLEAR, &data, 1);
 		
-		// Set interrupt config
-		data = 0b00111011; // enable and clear latched interrupt source for interrupt 2
-		kx122_task_spi_write(KX122_REG_INC5, &data, 1);
-		data = 0b00010000; // data ready on interrupt 2
-		kx122_task_spi_write(KX122_REG_INC6, &data, 1);
+		if(use_stream) {
+			// Set watermark interrupt threshold to 66
+			data = 66;
+			kx122_task_spi_write(KX122_REG_BUF_CNTL1, &data, 1);
+			data = 0b11100001;
+			kx122_task_spi_write(KX122_REG_BUF_CNTL2, &data, 1);
+			data = 0b00100000;
+			kx122_task_spi_write(KX122_REG_INS2, &data, 1);
+
+			data = 0b00111011; // enable and clear latched interrupt source for interrupt 2
+			kx122_task_spi_write(KX122_REG_INC5, &data, 1);
+			data = 0b00100000; // watermark interrupt on interrupt 2
+			kx122_task_spi_write(KX122_REG_INC6, &data, 1);
+
+			kx122.cont_enabled = true;
+		} else {
+			// Set interrupt config
+			data = 0b00111011; // enable and clear latched interrupt source for interrupt 2
+			kx122_task_spi_write(KX122_REG_INC5, &data, 1);
+			data = 0b00010000; // data ready on interrupt 2
+			kx122_task_spi_write(KX122_REG_INC6, &data, 1);
+
+			kx122.cont_enabled = false;
+		}
 
 		// Operating mode, data ready enable and new full scale
 		data = 0b10100000 | (kx122.config_current_full_scale << 3); 
@@ -182,11 +212,19 @@ void kx122_update_config_task(void) {
 		coop_task_sleep_ms(kx122_get_standby_delay_in_ms(kx122.config_current_data_rate));
 
 		switch(kx122.config_current_full_scale) {
-			case ACCELEROMETER_V2_FULL_SCALE_2G: kx122.acceleration_mult = 2000; break;
-			case ACCELEROMETER_V2_FULL_SCALE_4G: kx122.acceleration_mult = 4000; break;
-			case ACCELEROMETER_V2_FULL_SCALE_8G: kx122.acceleration_mult = 8000; break;
+			case ACCELEROMETER_V2_FULL_SCALE_2G: kx122.acceleration_mult = 625;  break; // 625  = 20000/32
+			case ACCELEROMETER_V2_FULL_SCALE_4G: kx122.acceleration_mult = 1250; break; // 1250 = 40000/32
+			case ACCELEROMETER_V2_FULL_SCALE_8G: kx122.acceleration_mult = 2500; break; // 2500 = 80000/32
 		}
 	}
+}
+
+void kx122_read_buffer_task(void) {
+	kx122_task_spi_read(KX122_REG_BUF_READ, (uint8_t *)kx122.cont_acceleration, 120);
+
+	kx122.acceleration[0] = kx122.cont_acceleration[27] * kx122.acceleration_mult / 1024;
+	kx122.acceleration[1] = kx122.cont_acceleration[28] * kx122.acceleration_mult / 1024;
+	kx122.acceleration[2] = kx122.cont_acceleration[29] * kx122.acceleration_mult / 1024;
 }
 
 void kx122_tick_task(void) {
@@ -197,11 +235,14 @@ void kx122_tick_task(void) {
 
 		if(kx122_int2) {
 			kx122_int2 = false;
-			kx122_task_spi_read(0x06, (uint8_t*)&acceleration, 6);
-			kx122.acceleration[KX122_X] = acceleration[KX122_X] * kx122.acceleration_mult / 32768;
-			kx122.acceleration[KX122_Y] = acceleration[KX122_Y] * kx122.acceleration_mult / 32768;
-			kx122.acceleration[KX122_Z] = acceleration[KX122_Z] * kx122.acceleration_mult / 32768;
-
+			if(kx122.cont_enabled) {
+				kx122_read_buffer_task();
+			} else {
+				kx122_task_spi_read(0x06, (uint8_t*)&acceleration, 6);
+				kx122.acceleration[KX122_X] = acceleration[KX122_X] * kx122.acceleration_mult / 1024; // 1024 = 32768/32
+				kx122.acceleration[KX122_Y] = acceleration[KX122_Y] * kx122.acceleration_mult / 1024;
+				kx122.acceleration[KX122_Z] = acceleration[KX122_Z] * kx122.acceleration_mult / 1024;
+			}
 		} else {
 			coop_task_yield();
 		}
@@ -375,7 +416,6 @@ void kx122_init(void) {
 	kx122.config_new            = true;
 	kx122.config_new_data_rate  = ACCELEROMETER_V2_DATA_RATE_100HZ;
 	kx122.config_new_full_scale = ACCELEROMETER_V2_FULL_SCALE_2G;
-	kx122.config_new_resolution = ACCELEROMETER_V2_RESOLUTION_16BIT;
 
 	coop_task_init(&kx122_task, kx122_tick_task);
 }
