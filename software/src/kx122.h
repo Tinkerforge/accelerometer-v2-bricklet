@@ -24,8 +24,9 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "bricklib2/utility/led_flicker.h"
 
-#define KX122_CONT_ACCELERATION_BUFFER_SIZE (1000*3)
+#define KX122_CONT_ACCELERATION_BUFFER_SIZE 256
 
 #define KX122_DATA_SPI_BUFFER_SIZE 128
 
@@ -34,17 +35,23 @@
 #define KX122_Z 2
 
 typedef struct {
+	int16_t x;
+	int16_t y;
+	int16_t z;
+} KX122Acceleration;
+
+typedef struct {
+	LEDFlickerState info_led_flicker_state;
+
 	uint8_t data_spi[KX122_DATA_SPI_BUFFER_SIZE];
 	uint8_t data_read_index;
 	uint8_t data_write_index;
 	uint16_t data_length;
 
-	int32_t acceleration[3];
-
 	uint32_t acceleration_period;
 	bool acceleration_value_has_to_change;
 
-	uint32_t acceleration_mult;
+	int32_t acceleration_mult;
 
 	uint8_t config_current_data_rate;
 	uint8_t config_current_full_scale;
@@ -53,21 +60,19 @@ typedef struct {
 	uint8_t config_new_full_scale;
 	bool config_new;
 
-	bool config_cont_current_enable[3];
-	uint8_t config_cont_current_resolution;
+	bool config_cont_enable[3];
+	uint8_t config_cont_resolution;
+	uint8_t config_cont_enable_count;
 
-	bool config_cont_new_enable[3];
-	uint8_t config_cont_new_resolution;
-	bool config_cont_new;
-
-	bool cont_enabled;
-	int16_t cont_acceleration[KX122_CONT_ACCELERATION_BUFFER_SIZE];
+	KX122Acceleration acceleration[KX122_CONT_ACCELERATION_BUFFER_SIZE];
+	uint8_t acceleration_read_index;
 } KX122;
 
 extern KX122 kx122;
 
 void kx122_init(void);
 void kx122_tick(void);
+int32_t kx122_adc_value_to_g(const int16_t value);
 
 #define KX122_REG_XHP_L         0x00
 #define KX122_REG_XHP_H         0x01
