@@ -130,7 +130,7 @@ BootloaderHandleMessageResponse set_continuous_acceleration_configuration(const 
 	kx122.config_cont_enable[1]    = data->enable_y;
 	kx122.config_cont_enable[2]    = data->enable_z;
 	kx122.config_cont_resolution   = data->resolution;
-	kx122.config_cont_enable_count = kx122.config_cont_enable[0] + kx122.config_cont_enable[1] + kx122.config_cont_enable[2];
+	kx122.config_cont_enable_count = (kx122.config_cont_enable[0] ? 1 : 0) + (kx122.config_cont_enable[1] ? 1 : 0) + (kx122.config_cont_enable[2] ? 1 : 0);
 
 	return HANDLE_MESSAGE_RESPONSE_EMPTY;
 }
