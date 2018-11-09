@@ -238,10 +238,9 @@ bool handle_continuous_acceleration_8_bit_callback(void) {
 	static ContinuousAcceleration8Bit_Callback cb;
 
 	if(!is_buffered) {
-		const uint8_t config_cont_count = kx122.config_cont_enable[0] || kx122.config_cont_enable[1] || kx122.config_cont_enable[2];
 		if((kx122.config_cont_resolution == ACCELEROMETER_V2_RESOLUTION_8BIT) &&
 		   (kx122.config_cont_enable_count > 0)) {
-			const uint8_t length =  kx122_acceleration_index - kx122.acceleration_read_index;
+			const uint8_t length = kx122_acceleration_index - kx122.acceleration_read_index;
 			if(length < 60/kx122.config_cont_enable_count) {
 				return false;
 			}
