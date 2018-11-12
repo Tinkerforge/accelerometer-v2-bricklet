@@ -25,6 +25,7 @@
 #include "xmc_gpio.h"
 #include "xmc_spi.h"
 
+#define KX122_INFO_LED_PIN         P1_1
 #define KX122_INT1_PIN             P0_5
 #define KX122_INT2_PIN             P0_0
 #define KX122_TRIGGER_PIN          P0_12
@@ -55,10 +56,13 @@
 
 #define KX122_SERVICE_REQUEST_RX   2
 #define KX122_SERVICE_REQUEST_TX   3
+#define KX122_SERVICE_REQUEST_CO   4
 
 #define KX122_IRQ_RX               11
 #define KX122_IRQ_RX_PRIORITY      2
 #define KX122_IRQ_TX               12
 #define KX122_IRQ_TX_PRIORITY      3
+#define KX122_IRQ_CO               13
+#define KX122_IRQ_CO_PRIORITY      1
 
 #endif

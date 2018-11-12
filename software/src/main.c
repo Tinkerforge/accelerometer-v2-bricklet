@@ -34,7 +34,6 @@ int main(void) {
 	logging_init();
 	logd("Start Accelerometer Bricklet 2.0\n\r");
 
-	communication_init();
 	kx122_init();
 
 	while(true) {

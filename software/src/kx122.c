@@ -35,6 +35,7 @@
 
 #define kx122_rx_irq_handler IRQ_Hdlr_11
 #define kx122_tx_irq_handler IRQ_Hdlr_12
+#define kx122_co_irq_handler IRQ_Hdlr_13
 
 #define kx122_int2_irq_handler IRQ_Hdlr_21
 
@@ -60,11 +61,39 @@ const uint8_t kx122_data_rate_to_osa[] = {
 KX122 kx122;
 CoopTask kx122_task;
 
-volatile bool kx122_int2 = false;
+KX122Acceleration *const kx122_acceleration = kx122.acceleration;
+volatile uint8_t kx122_acceleration_index = 255;
+
+// Called when new data is available (through int2 interrupt)
 void __attribute__((optimize("-O3"))) __attribute__ ((section (".ram_code"))) kx122_int2_irq_handler(void) {
-	kx122_int2 = true;
+	// Select
+	KX122_USIC->PCR_SSCMode |= XMC_SPI_CH_SLAVE_SELECT_0;
+
+	// Read acceleration
+	KX122_USIC->IN[0] = KX122_REG_XOUT_L | KX122_REG_READ;
+
+	// 2 * 3 bytes
+	KX122_USIC->IN[0] = 0;
+	KX122_USIC->IN[0] = 0;
+	KX122_USIC->IN[0] = 0;
+	KX122_USIC->IN[0] = 0;
+	KX122_USIC->IN[0] = 0;
+	KX122_USIC->IN[0] = 0;
 }
 
+// Called in data read mode if 7 bytes of data are available (address + 3 * int16_t acceleration)
+void __attribute__((optimize("-O3"))) __attribute__ ((section (".ram_code"))) kx122_co_irq_handler(void) {
+	// Deselect automatically done through frame length of 7*8 bit
+	uint8_t _ = KX122_USIC->OUTR; // throw address away
+
+	kx122_acceleration_index++;
+	kx122_acceleration[kx122_acceleration_index].x = KX122_USIC->OUTR | (KX122_USIC->OUTR << 8);
+	kx122_acceleration[kx122_acceleration_index].y = KX122_USIC->OUTR | (KX122_USIC->OUTR << 8);
+	kx122_acceleration[kx122_acceleration_index].z = KX122_USIC->OUTR | (KX122_USIC->OUTR << 8);
+
+}
+
+// RX interrupt for SPI configuration read/write
 void __attribute__((optimize("-O3"))) __attribute__ ((section (".ram_code"))) kx122_rx_irq_handler(void) {
 	while(!XMC_USIC_CH_RXFIFO_IsEmpty(KX122_USIC)) {
 		kx122.data_spi[kx122.data_read_index] = KX122_USIC->OUTR;
@@ -72,6 +101,7 @@ void __attribute__((optimize("-O3"))) __attribute__ ((section (".ram_code"))) kx
 	}
 }
 
+// TX interrupt for SPI configuration read/write
 void __attribute__((optimize("-O3"))) __attribute__ ((section (".ram_code"))) kx122_tx_irq_handler(void) {
 	while(!XMC_USIC_CH_TXFIFO_IsFull(KX122_USIC)) {
 		KX122_USIC->IN[0] = kx122.data_spi[kx122.data_write_index];
@@ -129,6 +159,10 @@ int8_t kx122_task_spi_write(uint8_t reg, uint8_t *data, uint16_t length) {
 	return 0;
 }
 
+int32_t kx122_adc_value_to_g(const int16_t value) {
+	return value * kx122.acceleration_mult / 1024; // 1024 = 32768/32
+}
+
 uint32_t kx122_get_standby_delay_in_ms(const uint8_t data_rate) {
 	// Standby delay should be 2/ODR seconds
 	switch(data_rate) {
@@ -147,22 +181,21 @@ uint32_t kx122_get_standby_delay_in_ms(const uint8_t data_rate) {
 }
 
 void kx122_update_config_task(void) {
-	if(kx122.config_new || kx122.config_cont_new) {
+	if(kx122.config_new) {
 		kx122.config_new = false;
-		kx122.config_cont_new =  false;
-
-		bool use_stream = kx122.config_cont_new_enable[0] || kx122.config_cont_new_enable[1] || kx122.config_cont_new_enable[2];
-
-		kx122.config_cont_current_enable[0]  = kx122.config_cont_new_enable[0];
-		kx122.config_cont_current_enable[1]  = kx122.config_cont_new_enable[1];
-		kx122.config_cont_current_enable[2]  = kx122.config_cont_new_enable[2];
-		kx122.config_cont_current_resolution = kx122.config_cont_new_resolution;
 
 		uint8_t old_data_rate  = kx122.config_current_data_rate;
 		uint8_t old_full_scale = kx122.config_current_full_scale;
 
 		kx122.config_current_data_rate  = kx122.config_new_data_rate;
 		kx122.config_current_full_scale = kx122.config_new_full_scale;
+
+		NVIC_DisableIRQ(KX122_IRQ_INT2);
+		NVIC_DisableIRQ(KX122_IRQ_CO);
+		coop_task_sleep_ms(1);
+		XMC_USIC_CH_RXFIFO_Flush(KX122_USIC);
+		NVIC_EnableIRQ(KX122_IRQ_RX);
+		XMC_SPI_CH_SetFrameLength(KX122_USIC, 64);
 
 		// Standby mode
 		uint8_t data = 0b00100000 | (old_full_scale << 3); 
@@ -179,30 +212,11 @@ void kx122_update_config_task(void) {
 		data = 0;
 		kx122_task_spi_write(KX122_REG_BUF_CLEAR, &data, 1);
 		
-		if(use_stream) {
-			// Set watermark interrupt threshold to 66
-			data = 66;
-			kx122_task_spi_write(KX122_REG_BUF_CNTL1, &data, 1);
-			data = 0b11100001;
-			kx122_task_spi_write(KX122_REG_BUF_CNTL2, &data, 1);
-			data = 0b00100000;
-			kx122_task_spi_write(KX122_REG_INS2, &data, 1);
-
-			data = 0b00111011; // enable and clear latched interrupt source for interrupt 2
-			kx122_task_spi_write(KX122_REG_INC5, &data, 1);
-			data = 0b00100000; // watermark interrupt on interrupt 2
-			kx122_task_spi_write(KX122_REG_INC6, &data, 1);
-
-			kx122.cont_enabled = true;
-		} else {
-			// Set interrupt config
-			data = 0b00111011; // enable and clear latched interrupt source for interrupt 2
-			kx122_task_spi_write(KX122_REG_INC5, &data, 1);
-			data = 0b00010000; // data ready on interrupt 2
-			kx122_task_spi_write(KX122_REG_INC6, &data, 1);
-
-			kx122.cont_enabled = false;
-		}
+		// Set interrupt config
+		data = 0b00111011; // enable and clear latched interrupt source for interrupt 2
+		kx122_task_spi_write(KX122_REG_INC5, &data, 1);
+		data = 0b00010000; // data ready on interrupt 2
+		kx122_task_spi_write(KX122_REG_INC6, &data, 1);
 
 		// Operating mode, data ready enable and new full scale
 		data = 0b10100000 | (kx122.config_current_full_scale << 3); 
@@ -216,36 +230,17 @@ void kx122_update_config_task(void) {
 			case ACCELEROMETER_V2_FULL_SCALE_4G: kx122.acceleration_mult = 1250; break; // 1250 = 40000/32
 			case ACCELEROMETER_V2_FULL_SCALE_8G: kx122.acceleration_mult = 2500; break; // 2500 = 80000/32
 		}
+
+		XMC_SPI_CH_SetFrameLength(KX122_USIC, 56);
+		NVIC_EnableIRQ(KX122_IRQ_CO);
+		NVIC_EnableIRQ(KX122_IRQ_INT2);
 	}
 }
 
-void kx122_read_buffer_task(void) {
-	kx122_task_spi_read(KX122_REG_BUF_READ, (uint8_t *)kx122.cont_acceleration, 120);
-
-	kx122.acceleration[0] = kx122.cont_acceleration[27] * kx122.acceleration_mult / 1024;
-	kx122.acceleration[1] = kx122.cont_acceleration[28] * kx122.acceleration_mult / 1024;
-	kx122.acceleration[2] = kx122.cont_acceleration[29] * kx122.acceleration_mult / 1024;
-}
-
 void kx122_tick_task(void) {
-	int16_t acceleration[3] = {0, 0, 0};
-
 	while(true) {
 		kx122_update_config_task();
-
-		if(kx122_int2) {
-			kx122_int2 = false;
-			if(kx122.cont_enabled) {
-				kx122_read_buffer_task();
-			} else {
-				kx122_task_spi_read(0x06, (uint8_t*)&acceleration, 6);
-				kx122.acceleration[KX122_X] = acceleration[KX122_X] * kx122.acceleration_mult / 1024; // 1024 = 32768/32
-				kx122.acceleration[KX122_Y] = acceleration[KX122_Y] * kx122.acceleration_mult / 1024;
-				kx122.acceleration[KX122_Z] = acceleration[KX122_Z] * kx122.acceleration_mult / 1024;
-			}
-		} else {
-			coop_task_yield();
-		}
+		coop_task_yield();
 	}
 }
 
@@ -315,7 +310,7 @@ void kx122_init_spi(void) {
 	XMC_USIC_CH_TXFIFO_Configure(KX122_USIC, 48, XMC_USIC_CH_FIFO_SIZE_16WORDS, 8);
 
 	// Configure receive FIFO
-	XMC_USIC_CH_RXFIFO_Configure(KX122_USIC, 32, XMC_USIC_CH_FIFO_SIZE_16WORDS, 8);
+	XMC_USIC_CH_RXFIFO_Configure(KX122_USIC, 32, XMC_USIC_CH_FIFO_SIZE_16WORDS, 6);
 
 	// Set service request for tx FIFO transmit interrupt
 	XMC_USIC_CH_TXFIFO_SetInterruptNodePointer(KX122_USIC, XMC_USIC_CH_TXFIFO_INTERRUPT_NODE_POINTER_STANDARD, KX122_SERVICE_REQUEST_TX);  // IRQ KX122_IRQ_TX
@@ -324,13 +319,19 @@ void kx122_init_spi(void) {
 	XMC_USIC_CH_RXFIFO_SetInterruptNodePointer(KX122_USIC, XMC_USIC_CH_RXFIFO_INTERRUPT_NODE_POINTER_STANDARD, KX122_SERVICE_REQUEST_RX);  // IRQ KX122_IRQ_RX
 	XMC_USIC_CH_RXFIFO_SetInterruptNodePointer(KX122_USIC, XMC_USIC_CH_RXFIFO_INTERRUPT_NODE_POINTER_ALTERNATE, KX122_SERVICE_REQUEST_RX); // IRQ KX122_IRQ_RX
 
+	// Set service request for continuous data FIFO receive interrupt
+	XMC_USIC_CH_RXFIFO_SetInterruptNodePointer(KX122_USIC, XMC_USIC_CH_RXFIFO_INTERRUPT_NODE_POINTER_STANDARD, KX122_SERVICE_REQUEST_CO);  // IRQ KX122_IRQ_CO
+	XMC_USIC_CH_RXFIFO_SetInterruptNodePointer(KX122_USIC, XMC_USIC_CH_RXFIFO_INTERRUPT_NODE_POINTER_ALTERNATE, KX122_SERVICE_REQUEST_CO); // IRQ KX122_IRQ_CO
+
 	//Set priority and enable NVIC node for transmit interrupt
 	NVIC_SetPriority((IRQn_Type)KX122_IRQ_TX, KX122_IRQ_TX_PRIORITY);
 	NVIC_EnableIRQ((IRQn_Type)KX122_IRQ_TX);
 
 	// Set priority and enable NVIC node for receive interrupt
 	NVIC_SetPriority((IRQn_Type)KX122_IRQ_RX, KX122_IRQ_RX_PRIORITY);
-	NVIC_EnableIRQ((IRQn_Type)KX122_IRQ_RX);
+
+	// Set priority and enable NVIC node for continuous data interrupt
+	NVIC_SetPriority((IRQn_Type)KX122_IRQ_CO, KX122_IRQ_CO_PRIORITY);
 
 	// Start SPI
 	XMC_SPI_CH_Start(KX122_USIC);
@@ -390,7 +391,6 @@ void kx122_init_int2(void) {
 
 	// Interrupt configuration for Capture
 	NVIC_SetPriority(KX122_IRQ_INT2, KX122_IRQ_INT2_PRIORITY);
-	NVIC_EnableIRQ(KX122_IRQ_INT2);
 }
 
 void kx122_init(void) {
@@ -401,14 +401,20 @@ void kx122_init(void) {
 		.input_hysteresis = XMC_GPIO_INPUT_HYSTERESIS_STANDARD
 	};
 
-	const XMC_GPIO_CONFIG_t pin_config_output = {
+	const XMC_GPIO_CONFIG_t pin_config_output_low = {
 		.mode             = XMC_GPIO_MODE_OUTPUT_PUSH_PULL,
 		.output_level     = XMC_GPIO_OUTPUT_LEVEL_LOW
 	};
 
-	XMC_GPIO_Init(KX122_INT1_PIN,    &pin_config_input);
-	XMC_GPIO_Init(KX122_INT2_PIN,    &pin_config_input);
-	XMC_GPIO_Init(KX122_TRIGGER_PIN, &pin_config_output);
+	const XMC_GPIO_CONFIG_t pin_config_output_high = {
+		.mode             = XMC_GPIO_MODE_OUTPUT_PUSH_PULL,
+		.output_level     = XMC_GPIO_OUTPUT_LEVEL_HIGH
+	};
+
+	XMC_GPIO_Init(KX122_INT1_PIN,     &pin_config_input);
+	XMC_GPIO_Init(KX122_INT2_PIN,     &pin_config_input);
+	XMC_GPIO_Init(KX122_TRIGGER_PIN,  &pin_config_output_low);
+	XMC_GPIO_Init(KX122_INFO_LED_PIN, &pin_config_output_high);
 
 	kx122_init_int2();
 	kx122_init_spi();
@@ -422,4 +428,7 @@ void kx122_init(void) {
 
 void kx122_tick(void) {
 	coop_task_tick(&kx122_task);
+	if(kx122.info_led_flicker_state.config == LED_FLICKER_CONFIG_HEARTBEAT) {
+		led_flicker_tick(&kx122.info_led_flicker_state, system_timer_get_ms(), KX122_INFO_LED_PIN);
+	}
 }

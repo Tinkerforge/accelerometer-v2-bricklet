@@ -31,7 +31,6 @@
 // Default functions
 BootloaderHandleMessageResponse handle_message(const void *data, void *response);
 void communication_tick(void);
-void communication_init(void);
 
 // Constants
 #define ACCELEROMETER_V2_DATA_RATE_0_781HZ 0
@@ -54,6 +53,10 @@ void communication_init(void);
 #define ACCELEROMETER_V2_FULL_SCALE_2G 0
 #define ACCELEROMETER_V2_FULL_SCALE_4G 1
 #define ACCELEROMETER_V2_FULL_SCALE_8G 2
+
+#define ACCELEROMETER_V2_INFO_LED_CONFIG_OFF 0
+#define ACCELEROMETER_V2_INFO_LED_CONFIG_ON 1
+#define ACCELEROMETER_V2_INFO_LED_CONFIG_SHOW_HEARTBEAT 2
 
 #define ACCELEROMETER_V2_RESOLUTION_8BIT 0
 #define ACCELEROMETER_V2_RESOLUTION_16BIT 1
@@ -82,12 +85,14 @@ void communication_init(void);
 #define FID_GET_CONFIGURATION 3
 #define FID_SET_ACCELERATION_CALLBACK_CONFIGURATION 4
 #define FID_GET_ACCELERATION_CALLBACK_CONFIGURATION 5
-#define FID_SET_CONTINUOUS_ACCELERATION_CONFIGURATION 7
-#define FID_GET_CONTINUOUS_ACCELERATION_CONFIGURATION 8
+#define FID_SET_INFO_LED_CONFIG 6
+#define FID_GET_INFO_LED_CONFIG 7
+#define FID_SET_CONTINUOUS_ACCELERATION_CONFIGURATION 9
+#define FID_GET_CONTINUOUS_ACCELERATION_CONFIGURATION 10
 
-#define FID_CALLBACK_ACCELERATION 6
-#define FID_CALLBACK_CONTINUOUS_ACCELERATION_16_BIT 9
-#define FID_CALLBACK_CONTINUOUS_ACCELERATION_8_BIT 10
+#define FID_CALLBACK_ACCELERATION 8
+#define FID_CALLBACK_CONTINUOUS_ACCELERATION_16_BIT 11
+#define FID_CALLBACK_CONTINUOUS_ACCELERATION_8_BIT 12
 
 typedef struct {
 	TFPMessageHeader header;
@@ -134,6 +139,20 @@ typedef struct {
 
 typedef struct {
 	TFPMessageHeader header;
+	uint8_t config;
+} __attribute__((__packed__)) SetInfoLEDConfig;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetInfoLEDConfig;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t config;
+} __attribute__((__packed__)) GetInfoLEDConfig_Response;
+
+typedef struct {
+	TFPMessageHeader header;
 	int32_t x;
 	int32_t y;
 	int32_t z;
@@ -176,6 +195,8 @@ BootloaderHandleMessageResponse set_configuration(const SetConfiguration *data);
 BootloaderHandleMessageResponse get_configuration(const GetConfiguration *data, GetConfiguration_Response *response);
 BootloaderHandleMessageResponse set_acceleration_callback_configuration(const SetAccelerationCallbackConfiguration *data);
 BootloaderHandleMessageResponse get_acceleration_callback_configuration(const GetAccelerationCallbackConfiguration *data, GetAccelerationCallbackConfiguration_Response *response);
+BootloaderHandleMessageResponse set_info_led_config(const SetInfoLEDConfig *data);
+BootloaderHandleMessageResponse get_info_led_config(const GetInfoLEDConfig *data, GetInfoLEDConfig_Response *response);
 BootloaderHandleMessageResponse set_continuous_acceleration_configuration(const SetContinuousAccelerationConfiguration *data);
 BootloaderHandleMessageResponse get_continuous_acceleration_configuration(const GetContinuousAccelerationConfiguration *data, GetContinuousAccelerationConfiguration_Response *response);
 
@@ -183,13 +204,6 @@ BootloaderHandleMessageResponse get_continuous_acceleration_configuration(const 
 bool handle_acceleration_callback(void);
 bool handle_continuous_acceleration_16_bit_callback(void);
 bool handle_continuous_acceleration_8_bit_callback(void);
-
-#define COMMUNICATION_CALLBACK_TICK_WAIT_MS 1
-#define COMMUNICATION_CALLBACK_HANDLER_NUM 3
-#define COMMUNICATION_CALLBACK_LIST_INIT \
-	handle_acceleration_callback, \
-	handle_continuous_acceleration_16_bit_callback, \
-	handle_continuous_acceleration_8_bit_callback, \
 
 
 #endif
