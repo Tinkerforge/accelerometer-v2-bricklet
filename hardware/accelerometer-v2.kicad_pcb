@@ -1,4 +1,4 @@
-(kicad_pcb (version 20171130) (host pcbnew 5.0.1-33cea8e~68~ubuntu18.04.1)
+(kicad_pcb (version 20171130) (host pcbnew 5.0.2-bee76a0~70~ubuntu18.04.1)
 
   (general
     (thickness 1.6002)
@@ -1523,7 +1523,7 @@
   (segment (start 128.35 91.45) (end 129.475 91.45) (width 0.25) (layer Vorderseite) (net 27) (tstamp 5B30B623))
   (segment (start 126.25888 93.54112) (end 128.35 91.45) (width 0.25) (layer Vorderseite) (net 27) (tstamp 5B30B621))
 
-  (zone (net 1) (net_name GND) (layer Rückseite) (tstamp 5BCEF09E) (hatch edge 0.508)
+  (zone (net 1) (net_name GND) (layer Rückseite) (tstamp 5C41FC0F) (hatch edge 0.508)
     (connect_pads yes (clearance 0.15))
     (min_thickness 0.15)
     (fill yes (arc_segments 16) (thermal_gap 0.29972) (thermal_bridge_width 0.29972))
