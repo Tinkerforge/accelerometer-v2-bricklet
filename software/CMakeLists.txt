@@ -22,7 +22,7 @@ INCLUDE_DIRECTORIES(
 	"${PROJECT_SOURCE_DIR}/src/"
 	"${PROJECT_SOURCE_DIR}/src/bricklib2/xmclib/XMCLib/inc/"
 	"${PROJECT_SOURCE_DIR}/src/bricklib2/xmclib/CMSIS/Include/"
-	"${PROJECT_SOURCE_DIR}/src/bricklib2/xmclib/CMSIS/Infineon/XMC1300_series/Include/"
+	"${PROJECT_SOURCE_DIR}/src/bricklib2/xmclib/CMSIS/Infineon/XMC1100_series/Include/"
 )
 
 # find source files
