@@ -1,0 +1,6 @@
+# Change XYZ to the UID of your Accelerometer Bricklet 2.0
+
+setup:
+	# Get current acceleration
+	subscribe to tinkerforge/response/accelerometer_v2_bricklet/XYZ/get_acceleration
+	publish '' to tinkerforge/request/accelerometer_v2_bricklet/XYZ/get_acceleration 

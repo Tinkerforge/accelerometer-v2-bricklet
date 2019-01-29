@@ -1,0 +1,31 @@
+Needs["NETLink`"]
+LoadNETAssembly["Tinkerforge",NotebookDirectory[]<>"../../.."]
+
+host="localhost"
+port=4223
+uid="XYZ"(*Change XYZ to the UID of your Accelerometer Bricklet 2.0*)
+
+(*Create IPConnection and device object*)
+ipcon=NETNew["Tinkerforge.IPConnection"]
+a=NETNew["Tinkerforge.BrickletAccelerometerV2",uid,ipcon]
+ipcon@Connect[host,port]
+
+(*Callback function for acceleration callback*)
+AccelerationCB[sender_,x_,y_,z_]:=
+ Module[{},
+  Print["Acceleration [X]: "<>ToString[N[Quantity[x,"g/10000"]]]];
+  Print["Acceleration [Y]: "<>ToString[N[Quantity[y,"g/10000"]]]];
+  Print["Acceleration [Z]: "<>ToString[N[Quantity[z,"g/10000"]]]]
+ ]
+
+AddEventHandler[a@AccelerationCallback,AccelerationCB]
+
+(*Set period for acceleration callback to 1s (1000ms)*)
+a@SetAccelerationCallbackConfiguration[1000,False]
+
+Input["Click OK to exit"]
+
+(*Clean up*)
+ipcon@Disconnect[]
+ReleaseNETObject[a]
+ReleaseNETObject[ipcon]
