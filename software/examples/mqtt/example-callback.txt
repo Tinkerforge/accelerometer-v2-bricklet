@@ -6,4 +6,4 @@ setup:
 	publish '{"register": true}' to tinkerforge/register/accelerometer_v2_bricklet/XYZ/acceleration # Register acceleration callback
 	
 	# Set period for acceleration callback to 1s (1000ms)
-	publish '{"period": 1000, "value_has_to_change": false}' to tinkerforge/request/accelerometer_v2_bricklet/XYZ/set_acceleration_callback_configuration 
+	publish '{"period": 1000, "value_has_to_change": false}' to tinkerforge/request/accelerometer_v2_bricklet/XYZ/set_acceleration_callback_configuration
