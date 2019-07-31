@@ -64,6 +64,9 @@ typedef struct {
 	uint8_t config_cont_resolution;
 	uint8_t config_cont_enable_count;
 
+	uint8_t config_filter_iir_bypass;
+	uint8_t config_filter_low_pass;
+
 	KX122Acceleration acceleration[KX122_CONT_ACCELERATION_BUFFER_SIZE];
 	uint8_t acceleration_read_index;
 } KX122;

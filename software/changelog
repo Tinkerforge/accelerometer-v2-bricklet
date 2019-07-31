@@ -3,3 +3,6 @@
 
 2019-05-29: 2.0.1 (f974324)
 - Fix SPITFP IRQ race condition with other higher prio IRQs (through bricklib2)
+
+2019-07-31: 2.0.2 (TBD)
+- Add support for filter configuration to API

@@ -42,6 +42,8 @@ BootloaderHandleMessageResponse handle_message(const void *message, void *respon
 		case FID_GET_INFO_LED_CONFIG: return get_info_led_config(message, response);
 		case FID_SET_CONTINUOUS_ACCELERATION_CONFIGURATION: return set_continuous_acceleration_configuration(message);
 		case FID_GET_CONTINUOUS_ACCELERATION_CONFIGURATION: return get_continuous_acceleration_configuration(message, response);
+		case FID_SET_FILTER_CONFIGURATION: return set_filter_configuration(message);
+		case FID_GET_FILTER_CONFIGURATION: return get_filter_configuration(message, response);
 		default: return HANDLE_MESSAGE_RESPONSE_NOT_SUPPORTED;
 	}
 }
@@ -145,6 +147,29 @@ BootloaderHandleMessageResponse get_continuous_acceleration_configuration(const 
 	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
 }
 
+BootloaderHandleMessageResponse set_filter_configuration(const SetFilterConfiguration *data) {
+	if(data->iir_bypass > ACCELEROMETER_V2_IIR_BYPASS_BYPASSED) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	if(data->low_pass_filter > ACCELEROMETER_V2_LOW_PASS_FILTER_HALF) {
+		return HANDLE_MESSAGE_RESPONSE_INVALID_PARAMETER;
+	}
+
+	kx122.config_filter_iir_bypass = data->iir_bypass;
+	kx122.config_filter_low_pass   = data->low_pass_filter;
+	kx122.config_new               =  true;
+
+	return HANDLE_MESSAGE_RESPONSE_EMPTY;
+}
+
+BootloaderHandleMessageResponse get_filter_configuration(const GetFilterConfiguration *data, GetFilterConfiguration_Response *response) {
+	response->header.length   = sizeof(GetFilterConfiguration_Response);
+	response->iir_bypass      = kx122.config_filter_iir_bypass;
+	response->low_pass_filter = kx122.config_filter_low_pass;
+
+	return HANDLE_MESSAGE_RESPONSE_NEW_MESSAGE;
+}
 
 bool handle_acceleration_callback(void) {
 	static bool is_buffered = false;

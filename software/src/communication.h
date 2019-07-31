@@ -61,6 +61,12 @@ void communication_tick(void);
 #define ACCELEROMETER_V2_RESOLUTION_8BIT 0
 #define ACCELEROMETER_V2_RESOLUTION_16BIT 1
 
+#define ACCELEROMETER_V2_IIR_BYPASS_APPLIED 0
+#define ACCELEROMETER_V2_IIR_BYPASS_BYPASSED 1
+
+#define ACCELEROMETER_V2_LOW_PASS_FILTER_NINTH 0
+#define ACCELEROMETER_V2_LOW_PASS_FILTER_HALF 1
+
 #define ACCELEROMETER_V2_BOOTLOADER_MODE_BOOTLOADER 0
 #define ACCELEROMETER_V2_BOOTLOADER_MODE_FIRMWARE 1
 #define ACCELEROMETER_V2_BOOTLOADER_MODE_BOOTLOADER_WAIT_FOR_REBOOT 2
@@ -89,6 +95,8 @@ void communication_tick(void);
 #define FID_GET_INFO_LED_CONFIG 7
 #define FID_SET_CONTINUOUS_ACCELERATION_CONFIGURATION 9
 #define FID_GET_CONTINUOUS_ACCELERATION_CONFIGURATION 10
+#define FID_SET_FILTER_CONFIGURATION 13
+#define FID_GET_FILTER_CONFIGURATION 14
 
 #define FID_CALLBACK_ACCELERATION 8
 #define FID_CALLBACK_CONTINUOUS_ACCELERATION_16_BIT 11
@@ -188,6 +196,21 @@ typedef struct {
 	int8_t acceleration[60];
 } __attribute__((__packed__)) ContinuousAcceleration8Bit_Callback;
 
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t iir_bypass;
+	uint8_t low_pass_filter;
+} __attribute__((__packed__)) SetFilterConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+} __attribute__((__packed__)) GetFilterConfiguration;
+
+typedef struct {
+	TFPMessageHeader header;
+	uint8_t iir_bypass;
+	uint8_t low_pass_filter;
+} __attribute__((__packed__)) GetFilterConfiguration_Response;
 
 // Function prototypes
 BootloaderHandleMessageResponse get_acceleration(const GetAcceleration *data, GetAcceleration_Response *response);
@@ -199,6 +222,8 @@ BootloaderHandleMessageResponse set_info_led_config(const SetInfoLEDConfig *data
 BootloaderHandleMessageResponse get_info_led_config(const GetInfoLEDConfig *data, GetInfoLEDConfig_Response *response);
 BootloaderHandleMessageResponse set_continuous_acceleration_configuration(const SetContinuousAccelerationConfiguration *data);
 BootloaderHandleMessageResponse get_continuous_acceleration_configuration(const GetContinuousAccelerationConfiguration *data, GetContinuousAccelerationConfiguration_Response *response);
+BootloaderHandleMessageResponse set_filter_configuration(const SetFilterConfiguration *data);
+BootloaderHandleMessageResponse get_filter_configuration(const GetFilterConfiguration *data, GetFilterConfiguration_Response *response);
 
 // Callbacks
 bool handle_acceleration_callback(void);

@@ -206,6 +206,9 @@ void kx122_update_config_task(void) {
 
 		// Set new data rate
 		data = kx122_data_rate_to_osa[kx122.config_current_data_rate];
+
+		data |= (kx122.config_filter_low_pass << 6);
+		data |= (kx122.config_filter_iir_bypass << 7);
 		kx122_task_spi_write(KX122_REG_ODCNTL, &data, 1);
 
 		// Clear buffer
