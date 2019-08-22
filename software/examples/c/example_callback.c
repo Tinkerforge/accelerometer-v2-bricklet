@@ -36,7 +36,7 @@ int main(void) {
 	// Register acceleration callback to function cb_acceleration
 	accelerometer_v2_register_callback(&a,
 	                                   ACCELEROMETER_V2_CALLBACK_ACCELERATION,
-	                                   (void *)cb_acceleration,
+	                                   (void (*)(void))cb_acceleration,
 	                                   NULL);
 
 	// Set period for acceleration callback to 1s (1000ms)
