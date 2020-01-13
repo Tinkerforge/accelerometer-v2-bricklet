@@ -22,5 +22,5 @@ if __name__ == "__main__":
     print("Acceleration [Y]: " + str(y/10000.0) + " g")
     print("Acceleration [Z]: " + str(z/10000.0) + " g")
 
-    raw_input("Press key to exit\n") # Use input() in Python 3
+    input("Press key to exit\n") # Use raw_input() in Python 2
     ipcon.disconnect()
