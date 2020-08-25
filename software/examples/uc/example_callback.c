@@ -1,13 +1,9 @@
-
-
 #include "bindings/hal_common.h"
 #include "bindings/bricklet_accelerometer_v2.h"
 
 #define UID "XYZ" // Change XYZ to the UID of your Accelerometer Bricklet 2.0
 
 void check(int rc, const char* msg);
-
-
 
 // Callback function for acceleration callback
 void acceleration_handler(TF_AccelerometerV2 *device, int32_t x, int32_t y, int32_t z,
@@ -19,7 +15,6 @@ void acceleration_handler(TF_AccelerometerV2 *device, int32_t x, int32_t y, int3
 	tf_hal_printf("Acceleration [Z]: %d 1/%d g\n", z, 10000.0);
 	tf_hal_printf("\n");
 }
-
 
 TF_AccelerometerV2 a;
 
