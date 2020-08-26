@@ -22,15 +22,13 @@ void example_setup(TF_HalContext *hal) {
 	// Create device object
 	check(tf_accelerometer_v2_create(&a, UID, hal), "create device object");
 
-
 	// Register acceleration callback to function acceleration_handler
 	tf_accelerometer_v2_register_acceleration_callback(&a,
-	                                                  acceleration_handler,
-	                                                  NULL);
+	                                                   acceleration_handler,
+	                                                   NULL);
 
 	// Set period for acceleration callback to 1s (1000ms)
 	tf_accelerometer_v2_set_acceleration_callback_configuration(&a, 1000, false);
-
 }
 
 void example_loop(TF_HalContext *hal) {

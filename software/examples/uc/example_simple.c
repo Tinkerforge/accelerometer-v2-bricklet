@@ -11,7 +11,6 @@ void example_setup(TF_HalContext *hal) {
 	// Create device object
 	check(tf_accelerometer_v2_create(&a, UID, hal), "create device object");
 
-
 	// Get current acceleration
 	int32_t x, y, z;
 	check(tf_accelerometer_v2_get_acceleration(&a, &x, &y, &z), "get acceleration");
@@ -19,7 +18,6 @@ void example_setup(TF_HalContext *hal) {
 	tf_hal_printf("Acceleration [X]: %d 1/%d g\n", x, 10000.0);
 	tf_hal_printf("Acceleration [Y]: %d 1/%d g\n", y, 10000.0);
 	tf_hal_printf("Acceleration [Z]: %d 1/%d g\n", z, 10000.0);
-
 }
 
 void example_loop(TF_HalContext *hal) {
