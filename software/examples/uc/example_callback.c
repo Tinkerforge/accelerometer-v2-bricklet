@@ -5,9 +5,13 @@
 
 void check(int rc, const char* msg);
 
+void example_setup(TF_HalContext *hal);
+void example_loop(TF_HalContext *hal);
+
+
 // Callback function for acceleration callback
-void acceleration_handler(TF_AccelerometerV2 *device, int32_t x, int32_t y, int32_t z,
-                          void *user_data) {
+static void acceleration_handler(TF_AccelerometerV2 *device, int32_t x, int32_t y,
+                                 int32_t z, void *user_data) {
 	(void)device; (void)user_data; // avoid unused parameter warning
 
 	tf_hal_printf("Acceleration [X]: %d 1/%d g\n", x, 10000.0);
@@ -16,7 +20,7 @@ void acceleration_handler(TF_AccelerometerV2 *device, int32_t x, int32_t y, int3
 	tf_hal_printf("\n");
 }
 
-TF_AccelerometerV2 a;
+static TF_AccelerometerV2 a;
 
 void example_setup(TF_HalContext *hal) {
 	// Create device object
