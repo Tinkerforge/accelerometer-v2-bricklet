@@ -23,9 +23,9 @@ void example_setup(TF_HalContext *hal) {
 	int32_t x, y, z;
 	check(tf_accelerometer_v2_get_acceleration(&a, &x, &y, &z), "get acceleration");
 
-	tf_hal_printf("Acceleration [X]: %d 1/%d g\n", x, 10000.0);
-	tf_hal_printf("Acceleration [Y]: %d 1/%d g\n", y, 10000.0);
-	tf_hal_printf("Acceleration [Z]: %d 1/%d g\n", z, 10000.0);
+	tf_hal_printf("Acceleration [X]: %d 1/%d g\n", x, 10000);
+	tf_hal_printf("Acceleration [Y]: %d 1/%d g\n", y, 10000);
+	tf_hal_printf("Acceleration [Z]: %d 1/%d g\n", z, 10000);
 }
 
 void example_loop(TF_HalContext *hal) {
