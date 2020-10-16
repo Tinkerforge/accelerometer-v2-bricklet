@@ -18,9 +18,9 @@ static void acceleration_handler(TF_AccelerometerV2 *device, int32_t x, int32_t 
                                  int32_t z, void *user_data) {
 	(void)device; (void)user_data; // avoid unused parameter warning
 
-	tf_hal_printf("Acceleration [X]: %d 1/%d g\n", x, 10000.0);
-	tf_hal_printf("Acceleration [Y]: %d 1/%d g\n", y, 10000.0);
-	tf_hal_printf("Acceleration [Z]: %d 1/%d g\n", z, 10000.0);
+	tf_hal_printf("Acceleration [X]: %d 1/%d g\n", x, 10000);
+	tf_hal_printf("Acceleration [Y]: %d 1/%d g\n", y, 10000);
+	tf_hal_printf("Acceleration [Z]: %d 1/%d g\n", z, 10000);
 	tf_hal_printf("\n");
 }
 
