@@ -9,8 +9,8 @@
 
 void check(int rc, const char* msg);
 
-void example_setup(TF_HalContext *hal);
-void example_loop(TF_HalContext *hal);
+void example_setup(TF_HAL *hal);
+void example_loop(TF_HAL *hal);
 
 
 // Callback function for acceleration callback
@@ -26,7 +26,7 @@ static void acceleration_handler(TF_AccelerometerV2 *device, int32_t x, int32_t 
 
 static TF_AccelerometerV2 a;
 
-void example_setup(TF_HalContext *hal) {
+void example_setup(TF_HAL *hal) {
 	// Create device object
 	check(tf_accelerometer_v2_create(&a, UID, hal), "create device object");
 
@@ -39,7 +39,7 @@ void example_setup(TF_HalContext *hal) {
 	tf_accelerometer_v2_set_acceleration_callback_configuration(&a, 1000, false);
 }
 
-void example_loop(TF_HalContext *hal) {
+void example_loop(TF_HAL *hal) {
 	// Poll for callbacks
 	tf_hal_callback_tick(hal, 0);
 }
